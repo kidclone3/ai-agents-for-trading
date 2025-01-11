@@ -30,28 +30,33 @@ import asyncio
 
 # Patch httpx before importing twikit
 import httpx
+
 original_client = httpx.Client
+
 
 def patched_client(*args, **kwargs):
     # Add browser-like headers
-    if 'headers' not in kwargs:
-        kwargs['headers'] = {}
-    
-    kwargs['headers'].update({
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Sec-Fetch-User': '?1'
-    })
-    
-    kwargs.pop('proxy', None)
+    if "headers" not in kwargs:
+        kwargs["headers"] = {}
+
+    kwargs["headers"].update(
+        {
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+        }
+    )
+
+    kwargs.pop("proxy", None)
     return original_client(*args, **kwargs)
+
 
 httpx.Client = patched_client
 
@@ -63,21 +68,25 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+
 async def main():
     try:
         # Get credentials from env
-        USERNAME = os.getenv('TWITTER_USERNAME')
-        EMAIL = os.getenv('TWITTER_EMAIL')
-        PASSWORD = os.getenv('TWITTER_PASSWORD')
+        USERNAME = os.getenv("TWITTER_USERNAME")
+        EMAIL = os.getenv("TWITTER_EMAIL")
+        PASSWORD = os.getenv("TWITTER_PASSWORD")
 
         if not all([USERNAME, EMAIL, PASSWORD]):
             cprint("❌ Error: Missing Twitter credentials in .env file!", "red")
-            cprint("🔍 Please check the setup instructions at the top of this file.", "yellow")
+            cprint(
+                "🔍 Please check the setup instructions at the top of this file.",
+                "yellow",
+            )
             exit(1)
 
         # Initialize client
         client = Client()
-        
+
         cprint("🌙 Moon Dev's Twitter Login Script", "cyan")
         cprint("🔑 Attempting to log in...", "cyan")
 
@@ -85,11 +94,7 @@ async def main():
         time.sleep(3)
 
         # Login using credentials from .env
-        await client.login(
-            auth_info_1=USERNAME,
-            auth_info_2=EMAIL,
-            password=PASSWORD
-        )
+        await client.login(auth_info_1=USERNAME, auth_info_2=EMAIL, password=PASSWORD)
 
         time.sleep(2)  # Small delay after login
 
@@ -111,7 +116,9 @@ async def main():
         cprint(f"❌ Unexpected error: {str(e)}", "red")
         # Print the full error for debugging
         import traceback
+
         cprint(f"🔍 Debug info: {traceback.format_exc()}", "yellow")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
