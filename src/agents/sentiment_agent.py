@@ -27,6 +27,7 @@ SENTIMENT_ANNOUNCE_THRESHOLD = (
 )
 
 # Voice settings (copied from whale agent)
+VOICE_ENABLE = False  # Set to True to enable voice announcements
 VOICE_MODEL = "tts-1"  # or tts-1-hd for higher quality
 VOICE_NAME = "nova"  # Options: alloy, echo, fable, onyx, nova, shimmer
 VOICE_SPEED = 1  # 0.25 to 4.0
@@ -178,32 +179,34 @@ class SentimentAgent:
             if not is_important:
                 return
 
+            if not VOICE_ENABLE:
+                return
             # Generate unique filename based on timestamp
-            # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            # speech_file = self.audio_dir / f"sentiment_audio_{timestamp}.mp3"
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            speech_file = self.audio_dir / f"sentiment_audio_{timestamp}.mp3"
 
-            # # Generate speech using OpenAI
-            # response = openai.audio.speech.create(
-            #     model=VOICE_MODEL, voice=VOICE_NAME, speed=VOICE_SPEED, input=message
-            # )
+            # Generate speech using OpenAI
+            response = openai.audio.speech.create(
+                model=VOICE_MODEL, voice=VOICE_NAME, speed=VOICE_SPEED, input=message
+            )
 
-            # # Save and play the audio
-            # with open(speech_file, "wb") as f:
-            #     for chunk in response.iter_bytes():
-            #         f.write(chunk)
+            # Save and play the audio
+            with open(speech_file, "wb") as f:
+                for chunk in response.iter_bytes():
+                    f.write(chunk)
 
-            # # Play the audio
-            # if os.name == "posix":  # macOS/Linux
-            #     os.system(f"afplay {speech_file}")
-            # else:  # Windows
-            #     os.system(f"start {speech_file}")
-            #     time.sleep(5)
+            # Play the audio
+            if os.name == "posix":  # macOS/Linux
+                os.system(f"afplay {speech_file}")
+            else:  # Windows
+                os.system(f"start {speech_file}")
+                time.sleep(5)
 
             # Clean up
-            # try:
-            #     speech_file.unlink()
-            # except Exception as e:
-            #     print(f"⚠️ Couldn't delete audio file: {e}")
+            try:
+                speech_file.unlink()
+            except Exception as e:
+                print(f"⚠️ Couldn't delete audio file: {e}")
 
         except Exception as e:
             print(f"❌ Error in text-to-speech: {str(e)}")
@@ -214,7 +217,7 @@ class SentimentAgent:
             new_data = pd.DataFrame(
                 [
                     {
-                        "timestamp": datetime.now().isoformat(sep=" "),
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "sentiment_score": sentiment_score,
                         "num_tweets": num_tweets,
                     }
@@ -230,7 +233,9 @@ class SentimentAgent:
                 cutoff_time = datetime.now() - timedelta(hours=24)
                 history_df = history_df[history_df["timestamp"] > cutoff_time]
                 # Convert back to ISO format for consistent storage
-                history_df["timestamp"] = history_df["timestamp"].dt.isoformat(sep=" ")
+                history_df["timestamp"] = history_df["timestamp"].dt.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
                 # Append new data
                 history_df = pd.concat([history_df, new_data], ignore_index=True)
             else:
@@ -252,9 +257,7 @@ class SentimentAgent:
                 return None, None
 
             # Convert timestamps using ISO format
-            history_df["timestamp"] = pd.to_datetime(
-                history_df["timestamp"], format="ISO8601"
-            )
+            history_df["timestamp"] = pd.to_datetime(history_df["timestamp"])
             history_df = history_df.sort_values("timestamp")
 
             current_score = float(history_df.iloc[-1]["sentiment_score"])
@@ -471,7 +474,7 @@ class SentimentAgent:
 
             try:
                 tweet_data = {
-                    "collection_time": datetime.now().isoformat(sep=" "),
+                    "collection_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "tweet_id": str(tweet.id),
                     "created_at": tweet.created_at,
                     "user_name": tweet.user.name,
