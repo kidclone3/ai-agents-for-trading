@@ -11,6 +11,29 @@ Required:
 2. Make sure your .env has the Twitter credentials, example added to .env.example
 """
 
+import asyncio
+from datetime import datetime, timedelta
+import os
+import pathlib
+from pathlib import Path
+from random import randint
+import sys
+import time
+from typing import Optional
+
+from dotenv import load_dotenv
+import httpx
+import numpy as np
+import openai
+import pandas as pd
+from termcolor import cprint
+import torch
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+from src.ai import ClaudeAIProvider, GroqProvider, OpenAIProvider
+from src.ai.base_provider import AIProviderRepository
+
+
 # Configuration
 TOKENS_TO_TRACK = ["solana", "bitcoin", "ethereum"]  # Add tokens you want to track
 TWEETS_PER_RUN = 30  # Number of tweets to collect per run
@@ -32,23 +55,6 @@ VOICE_MODEL = "tts-1"  # or tts-1-hd for higher quality
 VOICE_NAME = "nova"  # Options: alloy, echo, fable, onyx, nova, shimmer
 VOICE_SPEED = 1  # 0.25 to 4.0
 
-import httpx
-from dotenv import load_dotenv
-import os
-import sys
-from termcolor import cprint
-import time
-from datetime import datetime, timedelta
-import csv
-from random import randint
-import pathlib
-import asyncio
-import pandas as pd
-import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-import numpy as np
-import openai
-from pathlib import Path
 
 # Create data directory if it doesn't exist
 pathlib.Path(DATA_FOLDER).mkdir(parents=True, exist_ok=True)
@@ -122,9 +128,48 @@ class SentimentAgent:
 
         # Load the sentiment model at initialization
         cprint("🤖 Loading sentiment model...", "cyan")
+
+        self.ai_provider = AIProviderRepository()
+
+        self.init_ai_provider()
         self.init_sentiment_model()
 
         cprint("🌙 Moon Dev's Sentiment Agent initialized!", "green")
+
+    def init_ai_provider(self, provider_type: Optional[str] = None):
+        """Initialize the AI provider if API key is available"""
+
+        provider_map = {
+            "openai": ("OPENAI_KEY", OpenAIProvider),
+            "claude": ("CLAUDE_KEY", ClaudeAIProvider),
+            "groq": ("GROQ_KEY", GroqProvider),
+        }
+
+        if provider_type is not None and provider_type in provider_map:
+            env_key, provider_class = provider_map[provider_type]
+            api_key = os.getenv(env_key, None)
+            if api_key:
+                self.ai_provider.register_provider(
+                    provider_type, provider_class(api_key)
+                )
+                cprint(f"✨ {provider_type.capitalize()} provider loaded!", "green")
+            else:
+                cprint(
+                    f"❌ Error loading {provider_type.capitalize()} provider: No API key found",
+                    "red",
+                )
+            return
+
+        for provider_name, (env_key, provider_class) in provider_map.items():
+            api_key = os.getenv(env_key, None)
+            if api_key:
+                self.ai_provider.register_provider(
+                    provider_name, provider_class(api_key)
+                )
+                cprint(f"✨ {provider_name.capitalize()} provider loaded!", "green")
+
+        if self.ai_provider.is_empty():
+            cprint("❌ Error loading AI provider: No API key found", "red")
 
     def init_sentiment_model(self):
         """Initialize the BERT model for sentiment analysis"""
@@ -185,10 +230,10 @@ class SentimentAgent:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             speech_file = self.audio_dir / f"sentiment_audio_{timestamp}.mp3"
 
-            # Generate speech using OpenAI
-            response = openai.audio.speech.create(
-                model=VOICE_MODEL, voice=VOICE_NAME, speed=VOICE_SPEED, input=message
-            )
+            # # Generate speech using OpenAI
+            # response = openai.audio.speech.create(
+            #     model=VOICE_MODEL, voice=VOICE_NAME, speed=VOICE_SPEED, input=message
+            # )
 
             # Save and play the audio
             with open(speech_file, "wb") as f:
