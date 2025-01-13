@@ -1,10 +1,9 @@
 from typing import Any, List, Optional
-from src.agents.ai.base_provider import (
-    AIMessage,
-    AIResponse,
-    BaseAIProvider,
-)
+
 import groq
+
+from src.ai.base_provider import AIMessage, AIResponse, BaseAIProvider
+
 
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
 

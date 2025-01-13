@@ -1,9 +1,6 @@
 from typing import Any, List, Optional
-from src.agents.ai.base_provider import (
-    AIMessage,
-    AIResponse,
-    BaseAIProvider,
-)
+
+from src.ai.base_provider import AIMessage, AIResponse, BaseAIProvider
 
 
 class ClaudeAIProvider(BaseAIProvider):

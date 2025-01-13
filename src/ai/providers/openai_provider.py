@@ -1,10 +1,9 @@
 from typing import Any, List, Optional
-from src.agents.ai.base_provider import (
-    AIMessage,
-    AIResponse,
-    BaseAIProvider,
-)
+
 import openai
+
+from src.ai.base_provider import AIMessage, AIResponse, BaseAIProvider
+
 
 DEFAULT_VOICE_MODEL = "tts-1"  # or tts-1-hd for higher quality
 DEFAULT_VOICE_NAME = "nova"  # Options: alloy, echo, fable, onyx, nova, shimmer
